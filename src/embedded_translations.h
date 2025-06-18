@@ -41,8 +41,10 @@ const char* EN_JSON = R"json(
       "created_excel": "Successfully created Excel file: {0}",
       "set_range": "Successfully set sheet range content for sheet: {0}",
       "set_cells_by_array": "Successfully set cells by array for sheet: {0}",
+      "setting_cell_style": "Setting style '{1}' for cell '{0}'",
       "server_start": "Starting MCP server at localhost:{0}",
-      "server_stop_prompt": "Press Ctrl+C to stop the server"
+      "server_stop_prompt": "Press Ctrl+C to stop the server",
+      "instruction": "Processing instruction: {0}"
     }
   },
   "exception": {
@@ -105,7 +107,7 @@ const char* EN_JSON = R"json(
       }
     },
     "set_cells": {
-      "description": "Set content and styles for multiple discrete cells in bulk using an array of strings. Each string is an instruction with the format: \"'Content'@Address#Style$ForegroundColor%BackgroundColor\". For example: \"'Hello'@A1#B$FF0000\" means writing 'Hello' in cell A1, bolded and with red font.",
+      "description": "Set content and styles for multiple discrete cells in bulk using an array of strings. Each string is an instruction with the format: \"'Content'@Address#Style$ForegroundColor%BackgroundColor\". For example: \"'Hello'@A1#B$FF0000\" means writing 'Hello' in cell A1, bolded and with red font, and \"@B2#bI\" means unbold and Italic B2, without modifing the content.",
       "param": {
         "sheet_name": "The name of the sheet to write to",
         "cells": "An array of strings, where each string describes the modifications for a cell. Format example: \"'New Content'@A1#BI$FFFFFF%000000\""
