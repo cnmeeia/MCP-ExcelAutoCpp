@@ -17,7 +17,7 @@ static const char ASCII_ART[] = "\n\
 ░█▀▀░█░█░█▀▀░█▀▀░█░░░█▀█░█░█░▀█▀░█▀█\n\
 ░█▀▀░▄▀▄░█░░░█▀▀░█░░░█▀█░█░█░░█░░█░█\n\
 ░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀▀▀░░▀░░▀▀▀\n\
-v0.0.3                 By smileFAace\n";
+v0.0.4                 By smileFAace\n";
  
 ExcelOperator g_excel_operator;
 std::string g_current_excel_file_path;
@@ -321,6 +321,182 @@ mcp::json set_sheet_range_content_handler(const mcp::json& params, const std::st
     }
 }
 
+// Helper function to convert hex color string to RGB components
+static std::tuple<uint8_t, uint8_t, uint8_t> s_hexToRgb(const std::string& hex) {
+    if (hex.length() != 6) {
+        return {0, 0, 0}; // Return black for invalid format
+    }
+    try {
+        long r = std::stol(hex.substr(0, 2), nullptr, 16);
+        long g = std::stol(hex.substr(2, 2), nullptr, 16);
+        long b = std::stol(hex.substr(4, 2), nullptr, 16);
+        return {(uint8_t)r, (uint8_t)g, (uint8_t)b};
+    } catch (const std::invalid_argument& e) {
+        spdlog::error("Invalid hex color string: {}", hex);
+        return {0, 0, 0};
+    }
+}
+
+// Helper function to convert Excel column letters to number (e.g., A -> 1, AA -> 27)
+static uint32_t s_colLettersToNumber(const std::string& col_letters) {
+    uint32_t col_num = 0;
+    for (char c : col_letters) {
+        if (!std::isalpha(c)) return 0; // Invalid character
+        col_num = col_num * 26 + (std::toupper(c) - 'A' + 1);
+    }
+    return col_num;
+}
+
+
+// Function to get cell row and column from address string (e.g., "A1")
+static std::pair<uint32_t, uint32_t> s_cellAddressToRowCol(const std::string& address) {
+    std::string col_letters;
+    std::string row_digits;
+    for (char c : address) {
+        if (std::isalpha(c)) {
+            col_letters += c;
+        } else if (std::isdigit(c)) {
+            row_digits += c;
+        }
+    }
+
+    if (col_letters.empty() || row_digits.empty()) {
+        return {0, 0}; // Invalid address
+    }
+
+    try {
+        uint32_t row = std::stoul(row_digits);
+        uint32_t col = s_colLettersToNumber(col_letters);
+        return {row, col};
+    } catch (const std::exception& e) {
+        spdlog::error("Invalid cell address format: {}", address);
+        return {0, 0};
+    }
+}
+
+mcp::json set_cells_by_array_handler(const mcp::json& params, const std::string& /* session_id */) {
+    ensure_excel_open();
+
+    if (!params.contains("sheet_name") || !params.contains("cells")) {
+        g_excel_operator.close();
+        spdlog::error(i18n::t("log.error.missing_params.set_cells"));
+        throw mcp::mcp_exception(mcp::error_code::invalid_params, i18n::t("exception.error.missing_params.set_cells"));
+    }
+
+    std::string sheet_name = params["sheet_name"].get<std::string>();
+    mcp::json cells_json = params["cells"];
+
+    if (!cells_json.is_array()) {
+        g_excel_operator.close();
+        spdlog::error(i18n::t("log.error.cells_not_array"));
+        throw mcp::mcp_exception(mcp::error_code::invalid_params, i18n::t("exception.error.cells_not_array"));
+    }
+
+    if (!g_excel_operator.selectSheet(sheet_name)) {
+        g_excel_operator.close();
+        spdlog::error(i18n::t("log.error.failed_select_sheet", sheet_name));
+        throw mcp::mcp_exception(mcp::error_code::internal_error, i18n::t("exception.error.failed_select_sheet", sheet_name));
+    }
+
+    for (const auto& cell_instruction_json : cells_json) {
+        if (!cell_instruction_json.is_string()) continue;
+        std::string instruction = cell_instruction_json.get<std::string>();
+
+        std::string content;
+        std::string address;
+        std::string style;
+        std::string fg_color;
+        std::string bg_color;
+
+        size_t content_start = instruction.find('\'');
+        size_t content_end = std::string::npos;
+        if (content_start != std::string::npos) {
+            content_end = instruction.find('\'', content_start + 1);
+            if (content_end != std::string::npos) {
+                content = instruction.substr(content_start + 1, content_end - content_start - 1);
+            }
+        }
+        
+        size_t at_pos = instruction.find('@');
+        if (at_pos == std::string::npos) continue; // Address is mandatory
+
+        size_t hash_pos = instruction.find('#', at_pos);
+        size_t dollar_pos = instruction.find('$', at_pos);
+        size_t percent_pos = instruction.find('%', at_pos);
+
+        size_t address_end = std::min({hash_pos, dollar_pos, percent_pos, instruction.length()});
+        address = instruction.substr(at_pos + 1, address_end - (at_pos + 1));
+
+        if (hash_pos != std::string::npos) {
+            size_t style_end = std::min({dollar_pos, percent_pos, instruction.length()});
+            style = instruction.substr(hash_pos + 1, style_end - (hash_pos + 1));
+        }
+
+        if (dollar_pos != std::string::npos) {
+            size_t fg_color_end = std::min({percent_pos, instruction.length()});
+            fg_color = instruction.substr(dollar_pos + 1, fg_color_end - (dollar_pos + 1));
+        }
+
+        if (percent_pos != std::string::npos) {
+            bg_color = instruction.substr(percent_pos + 1);
+        }
+
+        auto [row, col] = s_cellAddressToRowCol(address);
+        if (row == 0 || col == 0) {
+            spdlog::warn(i18n::t("log.warn.invalid_cell_address", address));
+            continue;
+        }
+
+        // 1. Set content
+        if (content_end != std::string::npos) {
+            g_excel_operator.setCellValue(address, content);
+        }
+
+        // 2. Set style
+        if (!style.empty()) {
+            // Alignment
+            if (style.find("➡️") != std::string::npos) g_excel_operator.setCellAlignment(row, col, "right", "");
+            if (style.find("⬅️") != std::string::npos) g_excel_operator.setCellAlignment(row, col, "left", "");
+            if (style.find("↔️") != std::string::npos) g_excel_operator.setCellAlignment(row, col, "center", "");
+            // Font style
+            if (style.find('B') != std::string::npos) g_excel_operator.setCellFontBold(row, col, true);
+            if (style.find('b') != std::string::npos) g_excel_operator.setCellFontBold(row, col, false);
+            if (style.find('I') != std::string::npos) g_excel_operator.setCellFontItalic(row, col, true);
+            if (style.find('i') != std::string::npos) g_excel_operator.setCellFontItalic(row, col, false);
+            if (style.find('U') != std::string::npos) g_excel_operator.setCellFontUnderline(row, col, true);
+            if (style.find('u') != std::string::npos) g_excel_operator.setCellFontUnderline(row, col, false);
+        }
+
+        // 3. Set foreground color
+        if (!fg_color.empty()) {
+            auto [r, g, b] = s_hexToRgb(fg_color);
+            g_excel_operator.setCellFontColor(row, col, r, g, b);
+        }
+
+        // 4. Set background color
+        if (!bg_color.empty()) {
+            auto [r, g, b] = s_hexToRgb(bg_color);
+            g_excel_operator.setCellBackgroundColor(row, col, r, g, b);
+        }
+    }
+
+    if (g_excel_operator.save()) {
+        mcp::json result = {
+            {
+                {"type", "text"},
+                {"text", i18n::t("result.set_cells_by_array")}
+            }
+        };
+        g_excel_operator.close();
+        spdlog::info(i18n::t("log.info.set_cells_by_array", sheet_name));
+        return result;
+    } else {
+        g_excel_operator.close();
+        spdlog::error(i18n::t("log.error.failed_set_cells_by_array", sheet_name));
+        throw mcp::mcp_exception(mcp::error_code::internal_error, i18n::t("exception.error.failed_set_cells_by_array"));
+    }
+}
+
 static void s_spdlog_init() {
 
     spdlog::set_pattern("%^%L%$(%H:%M:%S) %v");
@@ -380,6 +556,13 @@ static void s_mcpServer_init(mcp::server& server, bool blocking_mode) {
        .with_string_param("file_path", i18n::t("tool.create_xlsx.param.file_path"))
        .build();
     server.register_tool(create_xlsx_tool, create_xlsx_file_handler);
+
+    mcp::tool set_cells_tool = mcp::tool_builder("set_cells_by_array")
+        .with_description(i18n::t("tool.set_cells.description"))
+        .with_string_param("sheet_name", i18n::t("tool.set_cells.param.sheet_name"))
+        .with_array_param("cells", i18n::t("tool.set_cells.param.cells"), "string")
+        .build();
+    server.register_tool(set_cells_tool, set_cells_by_array_handler);
 
     spdlog::info(i18n::t("log.info.server_start", SERVER_PORT));
     spdlog::info(i18n::t("log.info.server_stop_prompt"));

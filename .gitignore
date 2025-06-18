@@ -42,3 +42,4 @@ CTestTestfile.cmake
 *.tmp
 *.swp
 doc/
+docs/

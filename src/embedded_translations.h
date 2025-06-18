@@ -23,19 +23,24 @@ const char* EN_JSON = R"json(
          "set_range": "Unsupported cell value type in 'values' array for set_sheet_range_content."
       },
       "failed_create_excel": "Failed to create Excel file: {0}",
-      "failed_set_range": "Failed to set sheet range content for sheet: {0}"
+      "failed_set_range": "Failed to set sheet range content for sheet: {0}",
+      "missing_params.set_cells": "Missing required parameters for set_cells_by_array.",
+      "cells_not_array": "'cells' parameter must be an array of strings for set_cells_by_array.",
+      "failed_set_cells_by_array": "Failed to set cells by array for sheet: {0}"
     },
     "warn": {
        "unsupported_cell_type": {
           "get_range": "Unsupported cell type encountered at row {0}, col {1}: {2}",
           "standard": "Unsupported cell type encountered during standard processing: {0}"
-       }
+       },
+       "invalid_cell_address": "Skipping invalid cell address during parsing: {0}"
     },
     "info": {
       "opened_excel": "Successfully opened Excel file: {0}",
       "retrieved_range": "Successfully retrieved sheet range content from sheet: {0}",
       "created_excel": "Successfully created Excel file: {0}",
       "set_range": "Successfully set sheet range content for sheet: {0}",
+      "set_cells_by_array": "Successfully set cells by array for sheet: {0}",
       "server_start": "Starting MCP server at localhost:{0}",
       "server_stop_prompt": "Press Ctrl+C to stop the server"
     }
@@ -60,7 +65,10 @@ const char* EN_JSON = R"json(
       "unsupported_cell_type": {
          "set_range": "Unsupported cell value type in 'values' array."
       },
-      "failed_set_range": "Failed to set sheet range content."
+      "failed_set_range": "Failed to set sheet range content.",
+      "missing_params.set_cells": "Missing required parameters for setting cells by array.",
+      "cells_not_array": "'cells' parameter must be an array of strings.",
+      "failed_set_cells_by_array": "Failed to set cells by array."
     }
   },
   "tool": {
@@ -95,11 +103,19 @@ const char* EN_JSON = R"json(
       "param": {
         "file_path": "The ABSOLUTE path with which the file should create to"
       }
+    },
+    "set_cells": {
+      "description": "Set content and styles for multiple discrete cells in bulk using an array of strings. Each string is an instruction with the format: \"'Content'@Address#Style$ForegroundColor%BackgroundColor\". For example: \"'Hello'@A1#B$FF0000\" means writing 'Hello' in cell A1, bolded and with red font.",
+      "param": {
+        "sheet_name": "The name of the sheet to write to",
+        "cells": "An array of strings, where each string describes the modifications for a cell. Format example: \"'New Content'@A1#BI$FFFFFF%000000\""
+      }
     }
   },
   "result": {
     "created_excel": "Excel file created successfully: {0}",
     "set_range": "Successfully set sheet range content.",
+    "set_cells_by_array": "Successfully set cells by array.",
     "unsupported_type": "[Unsupported Type]",
     "invalid_address": "InvalidAddress"
   }

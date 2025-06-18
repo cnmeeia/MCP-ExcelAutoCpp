@@ -16,19 +16,24 @@
          "set_range": "set_sheet_range_content 的 'values' 数组中包含不支持的单元格值类型。"
       },
       "failed_create_excel": "创建 Excel 文件失败：{0}",
-      "failed_set_range": "设置工作表 '{0}' 的范围内容失败。"
+      "failed_set_range": "设置工作表 '{0}' 的范围内容失败。",
+      "missing_params.set_cells": "缺少 set_cells_by_array 所需的参数。",
+      "cells_not_array": "set_cells_by_array 的 'cells' 参数必须是字符串数组。",
+      "failed_set_cells_by_array": "通过数组设置单元格失败：{0}"
     },
     "warn": {
        "unsupported_cell_type": {
           "get_range": "在行 {0}，列 {1} 遇到不支持的单元格类型：{2}",
           "standard": "标准处理过程中遇到不支持的单元格类型：{0}"
-       }
+       },
+       "invalid_cell_address": "解析时跳过无效的单元格地址：{0}"
     },
     "info": {
       "opened_excel": "成功打开 Excel 文件：{0}",
       "retrieved_range": "成功从工作表 '{0}' 获取范围内容。",
       "created_excel": "成功创建 Excel 文件：{0}",
       "set_range": "成功设置工作表 '{0}' 的范围内容。",
+      "set_cells_by_array": "成功通过数组设置工作表 '{0}' 的单元格。",
       "server_start": "在 localhost:{0} 启动 MCP 服务器",
       "server_stop_prompt": "按 Ctrl+C 停止服务器"
     }
@@ -53,7 +58,10 @@
       "unsupported_cell_type": {
          "set_range": "'values' 数组中包含不支持的单元格值类型。"
       },
-      "failed_set_range": "设置工作表范围内容失败。"
+      "failed_set_range": "设置工作表范围内容失败。",
+      "missing_params.set_cells": "缺少通过数组设置单元格所需的参数。",
+      "cells_not_array": "'cells' 参数必须是字符串数组。",
+      "failed_set_cells_by_array": "通过数组设置单元格失败。"
     }
   },
   "tool": {
@@ -88,11 +96,19 @@
       "param": {
         "file_path": "文件应创建到的绝对路径"
       }
+    },
+    "set_cells": {
+      "description": "通过一个字符串数组批量设置离散单元格的内容和样式。每个字符串都是一个指令，格式为：\"'内容'@地址#样式$前景色%背景色\"。例如：\"'你好'@A1#B$FF0000\" 表示在A1单元格写入'你好'，并设置为粗体和红色字体。",
+      "param": {
+        "sheet_name": "要写入的工作表名称",
+        "cells": "一个字符串数组，其中每个字符串都描述了一个单元格的修改。格式示例：\"'新内容'@A1#BI$FFFFFF%000000\""
+      }
     }
   },
   "result": {
     "created_excel": "成功创建 Excel 文件：{0}",
     "set_range": "成功设置工作表范围内容。",
+    "set_cells_by_array": "成功通过数组设置单元格。",
     "unsupported_type": "[不支持的类型]",
     "invalid_address": "无效地址"
   }
