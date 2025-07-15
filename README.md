@@ -5,6 +5,7 @@ This is a C++ based Excel Automation MCP (Model Context Protocol) server project
 
 ## Table of Contents
 
+
 *   [Features](#features)
 *   [Building the Project](#building-the-project)
 *   [Usage](#usage)
