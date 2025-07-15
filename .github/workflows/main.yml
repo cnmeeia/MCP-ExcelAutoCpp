@@ -6,11 +6,11 @@ on:
   # 當有程式碼推送到 'main' 分支時觸發
   push:
     branches:
-      - main
+      - master
   # 當有拉取請求到 'main' 分支時觸發
   pull_request:
     branches:
-      - main
+      - master
 
 # 定義工作 (jobs)
 jobs:
