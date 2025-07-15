@@ -1,0 +1,37 @@
+
+name: excel
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up CMake
+        run: |
+          brew install cmake ninja
+          brew install ninja
+
+      - name: Configure CMake
+        run: |
+          cmake -G "Ninja" -S . -B build
+
+      - name: Build
+        run: |
+          cmake --build build
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExcelAutoCpp
+          path: /bin/ExcelAutoCpp
