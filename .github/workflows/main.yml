@@ -6,11 +6,11 @@ on:
   # 當有程式碼推送到 'main' 分支時觸發
   push:
     branches:
-      - master
+      - main
   # 當有拉取請求到 'main' 分支時觸發
   pull_request:
     branches:
-      - master
+      - main
 
 # 定義工作 (jobs)
 jobs:
@@ -25,14 +25,17 @@ jobs:
       - name: 檢出程式碼
         uses: actions/checkout@v2 # 使用 actions/checkout@v2 動作來檢出儲存庫的程式碼
 
-      # 步驟 2: 快取 Homebrew 套件
+      # 步驟 2: 快取 Homebrew 安裝和套件
       # 這有助於在後續運行中加快依賴項的安裝速度
-      - name: 快取 Homebrew 套件
-        id: cache-brew # 為此步驟指定一個 ID，以便在其他步驟中引用
+      - name: 快取 Homebrew
         uses: actions/cache@v3 # 使用 actions/cache@v3 動作
         with:
-          # 指定要快取的路徑，這裡是 Homebrew 的核心公式目錄
-          path: /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
+          # 指定要快取的路徑。
+          # /usr/local/Homebrew 是 Homebrew 的預設安裝路徑
+          # ~/Library/Caches/Homebrew 是 Homebrew 下載的套件的快取目錄
+          path: |
+            /usr/local/Homebrew
+            ~/Library/Caches/Homebrew
           # 快取的鍵，基於作業系統和 CMakeLists.txt 文件的哈希值
           key: ${{ runner.os }}-brew-${{ hashFiles('**/CMakeLists.txt') }}
           # 恢復鍵，用於在主鍵不匹配時嘗試恢復快取
@@ -53,7 +56,7 @@ jobs:
           # 使用 Ninja 生成器配置 CMake 專案，源碼在當前目錄，建置目錄為 'build'
           cmake -G "Ninja" -S . -B build
 
-      # 5: 建置專案
+      # 步驟 5: 建置專案
       - name: 建置專案
         run: |
           # 使用 CMake 建置 'build' 目錄中的專案
@@ -64,7 +67,5 @@ jobs:
         uses: actions/upload-artifact@v4 # 使用 actions/upload-artifact@v4 動作來上傳產物
         with:
           name: ExcelAutoCpp # 上傳產物的名稱
-          # 指定要上傳的執行檔路徑。
-          # 假設 ExcelAutoCpp 執行檔在 'build' 目錄下。
-          # 如果您的 CMakeLists.txt 將其放置在 'build/bin' 或其他子目錄中，請相應調整此路徑。
-          path: build/ExcelAutoCpp
+          # 修正執行檔路徑為 'bin/ExcelAutoCpp'，根據您的建置輸出
+          path: bin/ExcelAutoCpp
